@@ -12,9 +12,6 @@
     .\Exam-ReadinessCheck.ps1
 #>
 
-[CmdletBinding()]
-param()
-
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 function Write-C {
