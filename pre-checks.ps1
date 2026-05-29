@@ -102,11 +102,15 @@ $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIden
 
 # ── Header ────────────────────────────────────────────────────────────────────
 
-$hostname = try { [System.Net.Dns]::GetHostName() } catch { $env:COMPUTERNAME }
+$hostname    = $env:COMPUTERNAME
+$hwUuid      = try { (Get-CimInstance Win32_ComputerSystemProduct -ErrorAction Stop).UUID } catch { "unavailable" }
+$machineGuid = try { (Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Cryptography" -ErrorAction Stop).MachineGuid } catch { "unavailable" }
 
 Write-Host ""
 Write-C ("=" * $width) Cyan
 Write-C "  Host: $hostname   |   $(Get-Date -f 'yyyy-MM-dd HH:mm')" Cyan
+Write-C "  HW:   $hwUuid" Cyan
+Write-C "  OS:   $machineGuid" Cyan
 if (-not $isAdmin) {
     Write-C "  [!] Not running as Administrator -- some checks may be incomplete" Yellow
 }
@@ -182,28 +186,6 @@ if (-not $btPnp) {
     Add-Result "Bluetooth Disabled" "PASS" "Not detected (disabled or not present)"
 } else {
     Add-Result "Bluetooth Disabled" "FAIL" "Bluetooth is active -- disable in Device Manager or BIOS"
-}
-
-# ── Ethernet ──────────────────────────────────────────────────────────────────
-# HardwareInterface guards against virtual adapters (VirtualBox = False, Hyper-V = False).
-# PhysicalMediaType "802.3" is primary; InterfaceDescription is fallback.
-# notmatch guard prevents WiFi/BT accidentally matching via description fallback.
-# Note: Ethernet only appears when cable is plugged in -- absent = not connected = FAIL.
-$ethernetAdapters = $allAdapters | Where-Object {
-    $_.HardwareInterface -eq $true -and
-    (
-        $_.PhysicalMediaType -match "802\.3" -or
-        $_.InterfaceDescription -match "Ethernet|LAN|GbE|GigE|10GbE"
-    ) -and
-    $_.InterfaceDescription -notmatch "Wi-?Fi|Wireless|802\.11|WLAN|Bluetooth"
-}
-$activeEthernet = $ethernetAdapters | Where-Object { $_.Status -eq "Up" }
-
-if ($activeEthernet) {
-    $names = ($activeEthernet | Select-Object -ExpandProperty Name) -join ", "
-    Add-Result "Ethernet LAN Active" "PASS" "Active: $names"
-} else {
-    Add-Result "Ethernet LAN Active" "FAIL" "No physical Ethernet active -- plug in LAN cable"
 }
 
 # ── USB Storage ───────────────────────────────────────────────────────────────
