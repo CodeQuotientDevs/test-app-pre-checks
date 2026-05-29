@@ -1,4 +1,7 @@
-﻿#Requires -Version 5.1
+if ($PSVersionTable.PSVersion.Major -lt 5 -or ($PSVersionTable.PSVersion.Major -eq 5 -and $PSVersionTable.PSVersion.Minor -lt 1)) {
+    Write-Host "This script requires PowerShell 5.1 or higher. Current version: $($PSVersionTable.PSVersion)" -ForegroundColor Red
+    exit
+}
 <#
 .SYNOPSIS
     Verifies machine is correctly configured before an exam.
@@ -33,7 +36,11 @@ $passCount = 0
 $failCount = 0
 $results   = [System.Collections.Generic.List[PSCustomObject]]::new()
 
-$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$scriptDir = if ($MyInvocation.MyCommand.Path) {
+    Split-Path -Parent $MyInvocation.MyCommand.Path
+} else {
+    $PWD.Path
+}
 $timestamp = Get-Date -Format 'yyyy-MM-dd HH-mm-ss'
 $logFile   = Join-Path $scriptDir "pre-checks $timestamp.log"
 $transcriptStarted = $false
